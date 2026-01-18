@@ -1,7 +1,7 @@
-import Sidebar from "./Sidebar/Sidebar";
-import Navbar from "./Navbar/Navbar";
-import Container from "./Container/Container";
-import InputArea from "./InputArea/InputArea";
+import Sidebar from "../components/Sidebar/Sidebar";
+import Navbar from "../components/Navbar/Navbar";
+import Container from "../components/Container/Container";
+import InputArea from "../components/InputArea/InputArea";
 import "./Home.css";
 
 const Home = () => {
