@@ -1,0 +1,15 @@
+.navbar {
+  height: 60px;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.offer {
+  background-color: #6b5cff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  color: white;
+}
