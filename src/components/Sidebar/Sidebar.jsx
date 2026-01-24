@@ -1,14 +1,168 @@
-import Tools from "./Tools";
+import { useState, useEffect, useRef } from "react";
+import {
+  FiPlus,
+  FiSearch,
+  FiImage,
+  FiGrid,
+  FiFolder,
+  FiSidebar,
+  FiX,
+  FiSettings
+} from "react-icons/fi";
+import SidebarItem from "./SidebarItem";
 import ChatHistory from "./ChatHistory";
 import "./Sidebar.css";
 
-const Sidebar = () => {
-  return (
-    <div className="sidebar">
-      <Tools />
-      <ChatHistory />
-    </div>
-  );
-};
+export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, onOpenSettings, onNewChat, onSelectChat, currentChatId }) {
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const sidebarRef = useRef(null);
 
-export default Sidebar;
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", JSON.stringify(collapsed));
+  }, [collapsed]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const handleMediaChange = (e) => setCollapsed(e.matches);
+
+    setCollapsed(mediaQuery.matches); // Initial check
+
+    mediaQuery.addEventListener("change", handleMediaChange);
+    return () => mediaQuery.removeEventListener("change", handleMediaChange);
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target) && isSearchActive) {
+        setIsSearchActive(false);
+        setSearchQuery("");
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isSearchActive]);
+
+  // Force expanded view when mobile menu is open so users can see labels
+  const isCollapsed = mobileOpen ? false : collapsed;
+
+  const handleNewChat = () => {
+    let maxId = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sage-chat-") && !key.startsWith("sage-chat-timestamp-")) {
+        const id = parseInt(key.replace("sage-chat-", ""), 10);
+        if (!isNaN(id) && id > maxId) {
+          maxId = id;
+        }
+      }
+    }
+    onSelectChat(maxId + 1);
+    setMobileOpen(false);
+  };
+
+  return (
+    <>
+      <div
+        className={`sidebar-overlay ${mobileOpen ? "active" : ""}`}
+        onClick={() => setMobileOpen(false)}
+      />
+      <aside ref={sidebarRef} className={`sidebar ${isCollapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-brand">
+            <img src="/sage2.png" alt="SAGE" className="sidebar-logo" />
+            {!isCollapsed && (
+              <div className="sidebar-brand-text">
+                <span className="sidebar-title">S A G E</span>
+              </div>
+            )}
+          </div>
+          <div className="sidebar-controls">
+            <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)} aria-label="Toggle sidebar">
+              <FiSidebar />
+            </button>
+            <button className="mobile-close-btn" onClick={() => setMobileOpen(false)} aria-label="Close sidebar">
+              <FiX />
+            </button>
+          </div>
+        </div>
+
+        <div className="sidebar-nav">
+          <SidebarItem icon={<FiPlus />} label="New chat" active collapsed={isCollapsed} onClick={handleNewChat} />
+          {isSearchActive && !isCollapsed ? (
+            <div className="sidebar-item search-mode">
+              <div className="search-box">
+                <FiSearch className="search-icon" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={() => {
+                    if (!searchQuery) setIsSearchActive(false);
+                  }}
+                  className="search-input"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setIsSearchActive(false);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    aria-label="Clear search"
+                    className="search-clear-btn"
+                  >
+                    <FiX className="search-clear-icon" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <SidebarItem 
+              icon={<FiSearch />} 
+              label="Search chats" 
+              collapsed={isCollapsed} 
+              onClick={() => {
+                setCollapsed(false);
+                setIsSearchActive(true);
+              }}
+            />
+          )}
+          <SidebarItem icon={<FiImage />} label="Images" collapsed={isCollapsed} />
+          <SidebarItem icon={<FiGrid />} label="Apps" collapsed={isCollapsed} />
+          <SidebarItem icon={<FiFolder />} label="Projects" collapsed={isCollapsed} />
+        </div>
+
+        <div className="sidebar-section">
+          <ChatHistory
+            currentChatId={currentChatId}
+            onSelectChat={onSelectChat}
+            onNewChat={onNewChat}
+            setMobileOpen={setMobileOpen}
+            isCollapsed={isCollapsed}
+            mobileOpen={mobileOpen}
+            searchQuery={searchQuery}
+          />
+        </div>
+
+        <div className="sidebar-footer">
+          <div className="user-info">
+            <div className="avatar">BG</div>
+            {!isCollapsed && <span>Varshu</span>}
+          </div>
+          {!isCollapsed && (
+            <button className="settings-btn" onClick={onOpenSettings} aria-label="Settings">
+              <FiSettings />
+            </button>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+}

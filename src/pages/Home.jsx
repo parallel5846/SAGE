@@ -1,20 +1,65 @@
+import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar/Sidebar";
-import Navbar from "../components/Navbar/Navbar";
 import Container from "../components/Container/Container";
-import InputArea from "../components/InputArea/InputArea";
-import "./Home.css";
+import SettingsModal from "../components/SettingsModal/SettingsModal";
 
-const Home = () => {
+export default function Home() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [chatId, setChatId] = useState(() => {
+    const saved = localStorage.getItem("sage-current-chat-id");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sage-current-chat-id", chatId);
+  }, [chatId]);
+
+  const handleSaveSettings = (settings) => {
+    console.log("Saved settings:", settings);
+    // Here you would typically update context or localStorage
+  };
+
+  const handleNewChat = () => {
+    setChatId((prev) => prev + 1);
+    setMobileOpen(false);
+  };
+
+  const handleClearHistory = () => {
+    if (window.confirm("Are you sure you want to delete all chat history? This cannot be undone.")) {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("sage-chat-")) {
+          localStorage.removeItem(key);
+        }
+      });
+      localStorage.removeItem("sage-current-chat-id");
+      setChatId(0);
+      setIsSettingsOpen(false);
+      window.location.reload();
+    }
+  };
+
   return (
-    <div className="home">
-      <Sidebar />
-      <div className="main">
-        <Navbar />
-        <Container />
-        <InputArea />
+    <div style={{ display: "flex", height: "100vh" }}>
+      <Sidebar
+        mobileOpen={mobileOpen}
+        setMobileOpen={setMobileOpen}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onNewChat={handleNewChat}
+        onSelectChat={setChatId}
+        currentChatId={chatId}
+      />
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+        <Container key={chatId} chatId={chatId} onMenuClick={() => setMobileOpen(true)} />
       </div>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onSave={handleSaveSettings}
+        onClearHistory={handleClearHistory}
+      />
     </div>
   );
-};
-
-export default Home;
+}
